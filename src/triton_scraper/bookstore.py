@@ -39,7 +39,7 @@ class BookList(object):
             requireds.append("Custom reader from A.S. Soft Reserves")
         requireds = "\n\t".join(str(entry) for entry in requireds)
         optionals = "\n\t".join(str(entry) for entry in ["Optional:"]+self.optional)
-        string = ''.join([(requireds if self.any_required else ''), (optionals if self.optional else '')])
+        string = '\n'.join([(requireds if self.any_required else ''), (optionals if self.optional else '')])
         return string
     
     @property
@@ -78,29 +78,42 @@ class Book(object):
     def __repr__(self):
         return self.__FORMAT.format(self).encode('utf8')
 
-book_cells_contents = XPath(RELATIVE_PREFIX+"/table[@border='1']/tr/td/font[not(@align='right')]/text()")
+book_cells = XPath(RELATIVE_PREFIX+"/table[@border='1']/tr/td/font[not(@align='right')]")
+discounted_price = XPath(RELATIVE_PREFIX+"/font[@color='#008000']")
 def availability2price(availability): # New Books, In Stock, Retail Price: $62.50
-    return Decimal(availability.split("$")[1]) if "In Stock" in availability else NaN
+    return Decimal(availability.split("$")[1]) if config.IN_STOCK in availability else NaN
+def skipping_availability_side_headers(cells):
+    for cell in cells:
+        if cell.text:
+            yield cell
 def books_on(bookstore_url_from_tritonlink):
     url = bookstore_url_from_tritonlink.replace("https", "http", 1)
     tree, _url = make_tree4url()(url)
     booklist = BookList()
-    try: #FIXME: fails on discounted titles
-        for sextuple in grouper(6, book_cells_contents(tree)):
-            if config.LACK_BOOK_LIST in sextuple[0]:# No book list
-                return BookList(unknown=True)
-            _sections, _instructor, required, author, title_comma_isbn, availability = sextuple
-            required = required == config.REQUIRED_BOOK_CODE
-            title, isbn = title_comma_isbn.rsplit(", ", 1) # Principles Of General Chemistry, 2 Edition, 9780077470500
-            if config.NO_TEXTBOOK_REQUIRED in title:
-                return BookList(required=[])
-            if config.AS_SOFT_RESERVES in title:
-                booklist.as_soft_reserves = True
-                continue
-            new, used = availability.split("\n")
+    for sextuple in grouper(6, skipping_availability_side_headers(book_cells(tree))):
+        if config.LACK_BOOK_LIST in sextuple[0].text:# No book list
+            return BookList(unknown=True)
+        _sections, _instructor, required, author, title_comma_isbn = (cell.text for cell in sextuple[:5])
+        availability = sextuple[-1]
+        required = required == config.REQUIRED_BOOK_CODE
+        title, isbn = title_comma_isbn.rsplit(", ", 1) # Principles Of General Chemistry, 2 Edition, 9780077470500
+        if config.NO_TEXTBOOK_REQUIRED in title:
+            return BookList(required=[])
+        if config.AS_SOFT_RESERVES in title:
+            booklist.as_soft_reserves = True
+            continue
+        discounts = discounted_price(availability)
+        if discounts:
+            discount = discounts[0]
+            if config.IN_STOCK not in availability.text:
+                new = NaN
+            else:
+                # New Books, Not in Stock*, Retail Price: $65.70, Discounted Price: <FONT COLOR="#008000">$21.03</FONT>
+                new = Decimal(discount.text[1:])#remove dollar sign
+            used = discount.tail
+        else:
+            new, used = availability.text.split("\n")
             new = availability2price(new)
-            used = availability2price(used)
-            booklist.add_book(Book(isbn, new, used, title, author), required)
-    except:
-        pass # FIXME
+        used = availability2price(used)
+        booklist.add_book(Book(isbn, new, used, title, author), required)
     return booklist

@@ -60,6 +60,7 @@ LACK_BOOK_LIST = cfg.get(_BOOKSTORE_SECT, 'nobooklistmsg')
 REQUIRED_BOOK_CODE = cfg.get(_BOOKSTORE_SECT, 'requiredcode')
 AS_SOFT_RESERVES = cfg.get(_BOOKSTORE_SECT, 'softreservestext')
 NO_TEXTBOOK_REQUIRED = cfg.get(_BOOKSTORE_SECT, 'nonerequiredtext')
+IN_STOCK = cfg.get(_BOOKSTORE_SECT, 'instocktext')
 
 #Meeting type codes
 _MTG_TYPE_CODES = "meetingtypecodes"

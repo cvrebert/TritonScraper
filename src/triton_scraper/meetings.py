@@ -188,7 +188,7 @@ class SeatedMeeting(object): #TBA
 class RecurringSeatedMeeting(RecurringMeeting, SeatedMeeting):
     """A recurring meeting with limited seating."""
     def __init__(self, section_id, section_number, instructor, start_time, end_time, days, available_seats, total_seats, bookstore_url, location=None):
-        RecurringMeeting.__init__(self, section_number=section_number, start_time=start_time, end_time=end_time, days=days, location=location)
+        RecurringMeeting.__init__(self, section_number=section_number, instructor=instructor, start_time=start_time, end_time=end_time, days=days, location=location)
         SeatedMeeting.__init__(self, section_id=section_id, section_number=section_number, instructor=instructor, available_seats=available_seats, total_seats=total_seats, bookstore_url=bookstore_url)
     
     __FORMAT = "{0.section_id} {0._num_days_times_loc} {0._seats_str}"

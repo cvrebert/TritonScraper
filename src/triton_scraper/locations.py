@@ -143,9 +143,10 @@ Building._CODE2OBJ["OTRSN"] = Building("OTRSN", "Otterson Hall (i.e. Rady School
 Building._CODE2OBJ["TM102"] = Building("TM102", "TM102", "TM102") # Mystery building not in building code index
 Building._CODE2OBJ["MYR-A"] = Building("MYR-A", '"MYR-A"', "MYR-A") # Mystery building not in building code index
 Building._CODE2OBJ["SPIES"] = Building("SPIES", "SPIES", "SIO") # Mystery building not in building code index. SIO is a guess.
+#       Less confusing
+Building._CODE2OBJ["CSB"].code = "CogSci (a.k.a. CSB)" # CSB != CompSci Bldg
 #       Reflect situation on the ground :-)
 cse = Building._CODE2OBJ["EBU3B"]
 cse.code = "CSE (a.k.a. %s)" % cse.code
 cse.name = "Computer Science & Engineering Building (a.k.a. %s)" % cse.name
-Building._CODE2OBJ["CSE"] = cse
 del cse

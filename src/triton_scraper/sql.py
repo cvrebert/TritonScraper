@@ -48,11 +48,11 @@ def _create_statement_for(table_name, columns):
     :rtype: string
     :returns: SQLite CREATE TABLE statement
     """
-    columns_def = ", ".join("%s %s" % pair for pair in CAPE_TABLE_COLUMNS)
+    columns_def = ", ".join("%s %s" % pair for pair in columns)
     return "CREATE TABLE %s(%s)" % (table_name, columns_def)
 
-def foreign_key(col, datatype, foreign_table, foreign_column):
-    return "%s %s REFERENCES %s(%s)" % (col, datatype, foreign_table, foreign_column)
+def foreign_key(datatype, foreign_table, foreign_column):
+    return "%s REFERENCES %s(%s)" % (datatype, foreign_table, foreign_column)
 
 #: Name of main CAPE SQLite table
 CAPE_TABLE_NAME = "Cape"
@@ -79,7 +79,7 @@ CREATE_CAPE_TABLE_STMT = _create_statement_for(CAPE_TABLE_NAME, CAPE_TABLE_COLUM
 #: Name of subsidiary level-of-agreement question answers SQLite table
 AGREEMENT_TABLE_NAME = "Agreement"
 #: List of (column name, SQLite type name) tuples for the level-of-agreement question answers SQLite table
-AGREEMENT_TABLE_COLUMNS = [foreign_key(SECTION_ID_COL, _INT, CAPE_TABLE_NAME, SECTION_ID_COL), ("question", _STR)] + [(level_name, _INT) for level_name in _cape.AgreementLevels._fields]
+AGREEMENT_TABLE_COLUMNS = [(SECTION_ID_COL, foreign_key(_INT, CAPE_TABLE_NAME, SECTION_ID_COL)), ("question", _STR)] + [(level_name, _INT) for level_name in _cape.AgreementLevels._fields]
 #: SQLite CREATE TABLE statement for level-of-agreement question answers SQLite table
 CREATE_AGREEMENT_TABLE_STMT = _create_statement_for(AGREEMENT_TABLE_NAME, AGREEMENT_TABLE_COLUMNS)
 
@@ -114,8 +114,8 @@ def _dump_just_cape_itself(cape, sqlite_conn):
     :param sqlite_conn: the database to write to
     :type sqlite_conn: :class:`sqlite3.Connection` or :class:`sqlite3.Cursor`
     """
-    plain = cape[:8]
-    flattened = sum([], cape[8:-1])
+    plain = list(cape[:8])
+    flattened = sum(map(list, cape[8:-1]), [])
     cape_values = plain + flattened
     _positional_insert(sqlite_conn, CAPE_TABLE_NAME, cape_values)
 
@@ -131,7 +131,7 @@ def _dump_agreement_levels(section_id, question, agreement_levels, sqlite_conn):
     :param sqlite_conn: the database to write to
     :type sqlite_conn: :class:`sqlite3.Connection` or :class:`sqlite3.Cursor`
     """
-    _positional_insert(sqlite_conn, AGREEMENT_TABLE_NAME, [section_id, question] + agreement_levels)
+    _positional_insert(sqlite_conn, AGREEMENT_TABLE_NAME, [section_id, question] + list(agreement_levels))
 
 def dump_into_db(cape, sqlite_conn):
     """Write the data in *cape* to the database *sqlite_conn*.

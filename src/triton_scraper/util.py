@@ -18,6 +18,13 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
 
+"""
+This module contains general utility functions and shared constants used by other TritonScraper modules.
+
+:copyright: (c) 2010 by Christopher Rebert.
+:license: MIT, see :file:`LICENSE.txt` for more details.
+"""
+
 from itertools import izip_longest as _izip_longest
 from decimal import Decimal as _Decimal
 from logging import getLogger as _getLogger
@@ -34,9 +41,10 @@ INFINITY = float('infinity')
 # Common XPath component
 RELATIVE_PREFIX = "descendant-or-self::node()"
 
+# TritonScraper's logger
 LOGGER = _getLogger(_LOGGER_NAME)
 
-#From the itertools cookbook
+# From the itertools cookbook: http://docs.python.org/library/itertools.html#recipes
 def grouper(n, iterable, fillvalue=None):
     "grouper(3, 'ABCDEFG', 'x') --> ABC DEF Gxx"
     args = [iter(iterable)] * n

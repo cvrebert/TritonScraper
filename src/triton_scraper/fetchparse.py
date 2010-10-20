@@ -18,6 +18,13 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
 
+"""
+This module handles fetching webpages from the internet and parsing them into :class:`lxml.etree.ElementTree`-s
+
+:copyright: (c) 2010 by Christopher Rebert.
+:license: MIT, see :file:`LICENSE.txt` for more details.
+"""
+
 from contextlib import closing
 import errno
 from socket import error as SocketError
@@ -38,13 +45,14 @@ from triton_scraper.util import LOGGER
 ### HTML parsing utility functions
 
 BR_TAGS = re.compile("<br>", re.IGNORECASE)
-def without_brs(html):
-    """Remove <br> tags, which merely complicate our scraping."""
+def _without_brs(html):
+    """Remove <br> tags which merely complicate our scraping."""
     return BR_TAGS.sub(' ', html)
 
-def parse_html(filelike, hack_around_broken_html=False):
+def _parse_html(filelike, hack_around_broken_html=False):
+    """Parses the HTML in the given file-like object, compensating for TritonLink's broken HTML if necessary, and returning the resulting ElementTree."""
     parser = etree.HTMLParser()
-    html = without_brs(filelike.read())
+    html = _without_brs(filelike.read())
     if hack_around_broken_html:# HACK: Damn you, TritonLink! You made lxml barf.
         html = html.replace('question.gif"', 'question.gif">').replace("')\";", "');\"")
     # print "="*40
@@ -54,9 +62,26 @@ def parse_html(filelike, hack_around_broken_html=False):
 
 # url_count = 0
 def make_tree4url():
+    """
+    :returns: a new :func:`tree4url` function with its own fresh associated :class:`CookieJar`
+    :rtype: function
+    """
     opener = build_opener(HTTPCookieProcessor(CookieJar()))
     def tree4url(url, post_args=None, hack_around_broken_html=False):
-        global url_count
+        """Fetches and parses the webpage at the given URL.
+        Cookies are accepted and presented to the server when necessary. Cookies are persistent across calls to the same tree4url.
+        Identifies itself using the User-agent string specified in the TritonScraper configuration file.
+        
+        :param url: URL to fetch
+        :type url: string
+        :param post_args: HTTP POST data to send
+        :type post_args: dict of strings to (possibly lists of) strings
+        :param hack_around_broken_html: do we need to use our hack to fix TritonLink's broken HTML so that :mod:`lxml` can parse it?
+        :type hack_around_broken_html: bool
+        :returns: HTML element tree of the webpage and actual URL browsed to (after redirects etc.)
+        :rtype: tuple of :class:`lxml.etree.ElementTree` and string
+        """
+        # global url_count
         req = Request(url)
         req.add_header('User-agent', config.USER_AGENT)
         data = urlencode(post_args, doseq=True) if post_args is not None else None
@@ -64,7 +89,7 @@ def make_tree4url():
         while True:
             try:
                 with closing(opener.open(req, data, config.SOCKET_TIMEOUT)) as f:
-                    tree = parse_html(f, hack_around_broken_html)
+                    tree = _parse_html(f, hack_around_broken_html)
                     # fname = str(url_count) + ".html"
                     # with open(fname, 'w') as log:
                     #     log.write(page)

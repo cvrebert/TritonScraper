@@ -132,7 +132,7 @@ def extract_JavaScript_link(anchor):
 ### Time parsing
 TIMES_SEPARATOR = " - "
 def parse_start_end_times(start_end_times):
-    """Parses the starting and ending times of a course event into a (start, end) tuple of :class:`datetime.time`-s."""
+    """Parses the starting and ending times of a course meeting into a (start, end) tuple of :class:`datetime.time`-s."""
     return tuple(parse_ucsd_time(ucsd_time) for ucsd_time in start_end_times.text.split(TIMES_SEPARATOR))
 
 UCSD_TIME_FORMAT = "%I:%M%p"
@@ -143,7 +143,7 @@ def parse_ucsd_time(ucsd_time):
     return time(struct_time.tm_hour, struct_time.tm_min)
 
 ### Lecture parsing
-def parse_unseated_event(row, course_inst):
+def parse_unseated_meeting(row, course_inst):
     lectures = course_inst.lectures
     _sect_id, mtg_type, sect_num, mtg_days_of_wk, start_end_times, bldg, room, instructor = row
     if _sect_id.text.strip():# req'd, but time+location TBA
@@ -156,7 +156,7 @@ def parse_unseated_event(row, course_inst):
     location = Location.new(bldg.text.strip(), room.text.strip())
     instructor = parse_instructor(instructor) if instructor.text != NBSP else None
     meeting = RecurringMeeting(sect_num, instructor, start, end, days, location)
-    course_inst.add_event(mtg_type, meeting)
+    course_inst.add_meeting(mtg_type, meeting)
 
 def parse_instructor(instructor):
     """Parses out an instructor cell into a triton_scraper.datatypes.Instructor"""
@@ -172,7 +172,7 @@ def parse_instructor(instructor):
 
 PROBLEMATIC_MEETING_TYPES = (config.RESEARCH_CONFERENCE_CODE, config.INDEPENDENT_STUDY_CODE, config.PRACTICUM_CODE)
 ### Section parsing
-def parse_seated_event(row, course_inst):
+def parse_seated_meeting(row, course_inst):
     sect_id, mtg_type, sect_num, mtg_days_of_wk, start_end_times, bldg, room, instructor, avail, limit, books = row
     mtg_type = mtg_type.text
     #FIXME: PRACTICUM_CODE not strictly problematic
@@ -191,7 +191,7 @@ def parse_seated_event(row, course_inst):
     books_link = extract_JavaScript_link(books.find(ANCHOR))
     instructor = parse_instructor(instructor) if instructor.text != NBSP else None
     meeting = RecurringSeatedMeeting(sect_id, sect_num, instructor, start, end, days, available_seats, total_seats, books_link, location)
-    course_inst.add_event(mtg_type, meeting)
+    course_inst.add_meeting(mtg_type, meeting)
 
 class SeatingDataUnavailableError(TransientError):
     "Seating data temporarily unavailable from TritonLink"
@@ -221,18 +221,18 @@ def parse_TBA_seminar_or_sect(row, course_inst):
     mtg_type = mtg_type.text
     sect_id = row[0].text
     if sect_id == NBSP:# additional seminar time
-        return parse_unseated_event(row, course_inst)
+        return parse_unseated_meeting(row, course_inst)
     sect_id = int(sect_id)
     sect_num = sect_num.text
     available_seats, total_seats = parse_seating(avail, total)
     books_link = extract_JavaScript_link(books.find(ANCHOR))
     instructor = parse_instructor(instructor) if instructor.text != NBSP else None
     meeting = SeatedMeeting(sect_id, sect_num, instructor, available_seats, total_seats, books_link)
-    course_inst.add_event(mtg_type, meeting)
+    course_inst.add_meeting(mtg_type, meeting)
     
 ### Final & Midterm parsing
 def parse_one_shot(row, course_inst):
-    """Parses a table row for a one-time event and adds it to the course instance"""
+    """Parses a table row for a one-time meeting and adds it to the course instance"""
     _sect_id, mtg_type, date, _mtg_doy, start_end_times, bldg, room, _ = row
     mtg_type = mtg_type.text
     date = parse_ucsd_date(date.text)
@@ -244,15 +244,20 @@ def parse_one_shot(row, course_inst):
             raise ValueError, "Multiple final exams\n(Old: %s\n New: %s)" % (course_inst.final, one_shot)
         course_inst.final = one_shot
     else:
-        course_inst.add_event(mtg_type, one_shot)
+        course_inst.add_meeting(mtg_type, one_shot)
 
+#: The date format used on the Schedule of Classes
 UCSD_DATE_FORMAT = "%m/%d/%Y"
 def parse_ucsd_date(ucsd_date):
-    """Parses a date in UCSD format into a :class:`datetime.date`"""
+    """Parses a date in UCSD format.
+    
+    :param ucsd_date: a date in :const:`UCSD_DATE_FORMAT`
+    :type ucsd_date: string
+    :rtype: :class:`datetime.date`"""
     struct_time = strptime(ucsd_date, UCSD_DATE_FORMAT)
     return date(struct_time.tm_year, struct_time.tm_mon, struct_time.tm_mday)
 
-was_cancelled = XPath(RELATIVE_PREFIX+"/span[@class='redtxt' and text()='Cancelled']")
+was_cancelled = XPath(RELATIVE_PREFIX+"/span[@class='redtxt' and text()='Cancelled']")#FIXME: put in config file
 ### The One Externally-relevant Function
 courses_like_tables = XPath(RELATIVE_PREFIX+"/table[@border='0' and @width='100%' and @cellspacing='2' and @cellpadding='3']")
 def course_instances_from(results_page_tree, subject_code):
@@ -279,13 +284,13 @@ def course_instances_from(results_page_tree, subject_code):
                     elif mtg_type in (config.FINAL_CODE, config.MIDTERM_CODE, config.PROBLEM_SESSION_CODE, config.REVIEW_SESSION_CODE, config.MAKE_UP_SESSION_CODE):
                         parse_one_shot(row, course_inst)
                     elif mtg_type in (config.LECTURE_CODE, config.DISCUSSION_CODE, config.LAB_CODE, config.TUTORIAL_CODE, config.FILM_CODE, config.STUDIO_CODE):
-                        parse_unseated_event(row, course_inst)
+                        parse_unseated_meeting(row, course_inst)
                     elif mtg_type == config.SEMINAR_CODE:
                         parse_TBA_seminar_or_sect(row, course_inst)
                     else:
                         raise ValueError, "Unrecognized meeting type: "+repr(mtg_type)
                 elif len(row) == 11:#Discussion/Lab/Tutorial
-                    parse_seated_event(row, course_inst)
+                    parse_seated_meeting(row, course_inst)
                 else:# Free-form; ignore
                     if row and was_cancelled(row[-1]):
                         LOGGER.info("A meeting of %s was cancelled", repr(course_inst.code))
@@ -305,7 +310,7 @@ def course_instances_from(results_page_tree, subject_code):
                 continue
             course_instances.append(course_inst)
             print course_inst.code,
-            # for lst in course_inst._code2event_list.values():
+            # for lst in course_inst._code2meeting_list.values():
                 # for m in lst:
                     # if isinstance(m, SeatedMeeting):
                         # print m.booklist

@@ -18,6 +18,13 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
 
+"""
+This module is the high-level interface for programmatically browsing TritonLink's Schedule of Classes.
+
+:copyright: (c) 2010 by Christopher Rebert.
+:license: MIT, see :file:`LICENSE.txt` for more details.
+"""
+
 from time import sleep as _sleep
 from collections import namedtuple
 

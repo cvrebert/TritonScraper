@@ -18,21 +18,28 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
 
+"""
+This module defines datatypes to represent UCSD course meetings.
+
+:copyright: (c) 2010 by Christopher Rebert.
+:license: MIT, see :file:`LICENSE.txt` for more details.
+"""
+
 from triton_scraper.util import INFINITY as _INFINITY
 from triton_scraper.bookstore import books_on as _books_on
 
 class Meeting(object):
     """A meeting with known start and end times."""
     def __init__(self, start_time, end_time, location=None, section_number=None):
-        #: Time of day when the event starts.
+        #: Time of day when the meeting starts.
         #:
         #: :type: :class:`datetime.time`
         self.start_time = start_time
-        #: Time of day when the event ends.
+        #: Time of day when the meeting ends.
         #:
         #: :type: :class:`datetime.time`
         self.end_time = end_time
-        #: Location of the event.
+        #: Location of the meeting.
         #:
         #: :type: :class:`Location` or :class:`LocationTBA` or :class:`UnknownLocation`
         self.location = location if location is not None else _UnknownLocation()
@@ -43,7 +50,7 @@ class Meeting(object):
     
     @property
     def duration(self):
-        """How long the event is in duration.
+        """How long the meeting is in duration.
 
         :type: :class:`datetime.timedelta`
         """
@@ -66,7 +73,7 @@ class OneShotMeeting(Meeting):
     """An meeting which is not recurring (i.e. happens only once)."""
     def __init__(self, date, start_time, end_time, location=None):
         Meeting.__init__(self, start_time=start_time, end_time=end_time, location=location, section_number=None)
-        #: The date when the event takes place.
+        #: The date when the meeting takes place.
         #:
         #: :type: :class:`datetime.date`
         self.date = date
@@ -89,7 +96,7 @@ class RecurringMeeting(Meeting):
     """A recurring meeting."""
     def __init__(self, section_number, instructor, start_time, end_time, days, location=None):
         Meeting.__init__(self, start_time=start_time, end_time=end_time, section_number=section_number, location=location)
-        #: Days of the week which the event is held on.
+        #: Days of the week which the meeting is held on.
         #:
         #: :type: :class:`DaysOfWeekSet`
         self.days = days
@@ -126,7 +133,7 @@ class SeatedMeeting(object): #TBA
         #:
         #: :type: int or float('infinity')
         self.available_seats = available_seats
-        #: The total number of seats for the event.
+        #: The total number of seats for the meeting.
         #:
         #: :type: int or float('infinity')
         self.total_seats = total_seats
@@ -141,7 +148,7 @@ class SeatedMeeting(object): #TBA
     
     @property
     def full(self):
-        """Is the event full?
+        """Is the meeting full?
 
         :type: bool
         """
@@ -149,7 +156,7 @@ class SeatedMeeting(object): #TBA
     
     @property
     def unlimited_seating(self):
-        """Does the event have unrestricted seating?
+        """Does the meeting have unrestricted seating?
 
         :type: bool
         """
@@ -157,9 +164,9 @@ class SeatedMeeting(object): #TBA
     
     @property
     def how_full(self):
-        """How full the event is.
+        """How full the meeting is.
         If seating is unlimited, then it's considered 0% full.
-        A waitlisted event is over 100% full.
+        A waitlisted meeting is over 100% full.
 
         :type: float
         """

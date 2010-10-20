@@ -18,6 +18,13 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
 
+"""
+This module parses course textbook information from the `UCSD Bookstore's website <http://bookstore.ucsd.edu/>`_.
+
+:copyright: (c) 2010 by Christopher Rebert.
+:license: MIT, see :file:`LICENSE.txt` for more details.
+"""
+
 from decimal import Decimal
 
 from triton_scraper.fetchparse import make_tree4url
@@ -26,9 +33,21 @@ from triton_scraper import config
 
 class BookList(object):
     def __init__(self, required=None, optional=None, as_soft_reserves=False, unknown=False):
+        #: Required books
+        #:
+        #: :type: list of :class:`Book`-s
         self.required = required or []
+        #: Optional books
+        #:
+        #: :type: list of :class:`Book`-s
         self.optional = optional or []
+        #: Is a course reader from A.S. Soft Reserves required?
+        #:
+        #: :type: bool
         self.as_soft_reserves = as_soft_reserves
+        #: Indicates whether the UCSD Bookstore has yet to receive a booklist for the associated course
+        #:
+        #: :type: bool
         self.unknown = unknown
     
     def __repr__(self):
@@ -44,10 +63,21 @@ class BookList(object):
     
     @property
     def any_required(self):
+        """Are any materials on this booklist required?
+        
+        :type: bool
+        """
         return self.as_soft_reserves or self.required
     
     def add_book(self, book, required):
-        (self.optional, self.required)[required].append(book)
+        """Add the given *book* to the booklist.
+        
+        :param book: textbook to add
+        :type book: :class:`Book`
+        :param required: is the textbook required?
+        :type required: bool
+        """
+        (self.required if required else self.optional).append(book)
         
 
 class Book(object):
@@ -80,17 +110,23 @@ class Book(object):
 
 book_cells = XPath(RELATIVE_PREFIX+"/table[@border='1']/tr/td/font[not(@align='right')]")
 discounted_price = XPath(RELATIVE_PREFIX+"/font[@color='#008000']")
-def availability2price(availability): # New Books, In Stock, Retail Price: $62.50
+def _availability2price(availability): # New Books, In Stock, Retail Price: $62.50
     return Decimal(availability.split("$")[1]) if config.IN_STOCK in availability else NaN
-def skipping_availability_side_headers(cells):
+def _skipping_availability_side_headers(cells):
     for cell in cells:
         if cell.text:
             yield cell
 def books_on(bookstore_url_from_tritonlink):
+    """Returns book list based on the given course page at the UCSD Bookstore's website.
+    
+    :param bookstore_url_from_tritonlink: UCSD Bookstore website URL for a course section
+    :type bookstore_url_from_tritonlink: string
+    :rtype: :class:`BookList`
+    """
     url = bookstore_url_from_tritonlink.replace("https", "http", 1)
     tree, _url = make_tree4url()(url)
     booklist = BookList()
-    for sextuple in grouper(6, skipping_availability_side_headers(book_cells(tree))):
+    for sextuple in grouper(6, _skipping_availability_side_headers(book_cells(tree))):
         if config.LACK_BOOK_LIST in sextuple[0].text:# No book list
             return BookList(unknown=True)
         _sections, _instructor, required, author, title_comma_isbn = (cell.text for cell in sextuple[:5])
@@ -113,7 +149,7 @@ def books_on(bookstore_url_from_tritonlink):
             used = discount.tail
         else:
             new, used = availability.text.split("\n")
-            new = availability2price(new)
-        used = availability2price(used)
+            new = _availability2price(new)
+        used = _availability2price(used)
         booklist.add_book(Book(isbn, new, used, title, author), required)
     return booklist

@@ -18,6 +18,13 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
 
+"""
+This module defines datatypes representing TritonLink Schedule of Classes data.
+
+:copyright: (c) 2010 by Christopher Rebert.
+:license: MIT, see :file:`LICENSE.txt` for more details.
+"""
+
 from __future__ import division
 from warnings import simplefilter as _simplefilter, catch_warnings as _catch_warnings
 
@@ -71,16 +78,16 @@ class DaysOfWeekSet(frozenset):
     def __repr__(self):
         return "{%s}" % (", ".join(self))
     
-_NORMAL_EVENT_TYPES = "lecture discussion lab tutorial seminar studio midterm problem_session review_session make_up_session film".split()
-def _event_type_name2code(type_name):
+_NORMAL_MEETING_TYPES = "lecture discussion lab tutorial seminar studio midterm problem_session review_session make_up_session film".split()
+def _meeting_type_name2code(type_name):
     return getattr(_config, type_name.upper()+"_CODE")
-def add_event_list_properties(klass):
-    for type_name in _NORMAL_EVENT_TYPES:
+def add_meeting_list_properties(klass):
+    for type_name in _NORMAL_MEETING_TYPES:
         property_name = type_name+"s"
-        extractor = lambda self, type_code=_event_type_name2code(type_name): self._code2event_list[type_code]
+        extractor = lambda self, type_code=_meeting_type_name2code(type_name): self._code2meeting_list[type_code]
         setattr(klass, property_name, property(extractor))
     return klass
-@add_event_list_properties
+@add_meeting_list_properties
 class CourseInstance(object):
     """An instance of a course. Two instances of the same course typically have different instructors and/or lecture times."""
     
@@ -112,13 +119,13 @@ class CourseInstance(object):
         #:
         #: :type: string or None
         self.prerequisites_url = prerequisites_url
-        self._code2event_list = dict( (_event_type_name2code(type_name), []) for type_name in _NORMAL_EVENT_TYPES)
+        self._code2meeting_list = dict( (_meeting_type_name2code(type_name), []) for type_name in _NORMAL_MEETING_TYPES)
         #: Final exam
         #:
         #: :type: :class:`OneShotEvent`
         self.final = None
         
-        self.instructor = None
+        self.instructor = None #FIXME
     
     # @property
     # def instructor(self):
@@ -151,26 +158,32 @@ class CourseInstance(object):
             parts.append("\tUnrestricted")
         else:
             parts.append("\tRestrictions: " + ", ".join(self.restrictions))
-        event_types = [("Seminars", self.seminars), ("Studios", self.studios), ("Lectures", self.lectures), ("Discussions", self.discussions), ("Labs", self.labs), ("Tutorials", self.tutorials), ("Films", self.films), ("Problem Sessions", self.problem_sessions), ("Review Sessions", self.review_sessions), ("Make-up Sessions", self.make_up_sessions), ("Midterms", self.midterms)]
-        for name, events in event_types:
-            if events:
-                part = "\t%s:\n\t\t%s" % (name, "\n\t\t".join(str(event) for event in events))
+        meeting_types = [("Seminars", self.seminars), ("Studios", self.studios), ("Lectures", self.lectures), ("Discussions", self.discussions), ("Labs", self.labs), ("Tutorials", self.tutorials), ("Films", self.films), ("Problem Sessions", self.problem_sessions), ("Review Sessions", self.review_sessions), ("Make-up Sessions", self.make_up_sessions), ("Midterms", self.midterms)]
+        for name, meetings in meeting_types:
+            if meetings:
+                part = "\t%s:\n\t\t%s" % (name, "\n\t\t".join(str(meeting) for meeting in meetings))
                 parts.append(part)
         parts.append("\tFinal: "+str(self.final))
         return "\n".join(parts)
     
-    def add_event(self, meeting_type_code, event):
+    def add_meeting(self, meeting_type_code, meeting):
+        """
+        :param meeting_type_code:
+        :type meeting_type_code: string
+        :param meeting:
+        :type meeting: 
+        """
         try:
-            self._code2event_list[meeting_type_code].append(event)
+            self._code2meeting_list[meeting_type_code].append(meeting)
         except KeyError:
             raise ValueError, "Unrecognized meeting type code: %s" % repr(mtg_type)
         else:
-            if self.instructor is None and hasattr(event, 'instructor') and event.instructor is not None and not isinstance(event.instructor, InstructorTBA):
-                self.instructor = event.instructor
+            if self.instructor is None and hasattr(meeting, 'instructor') and meeting.instructor is not None and not isinstance(meeting.instructor, InstructorTBA):
+                self.instructor = meeting.instructor
     
     def __bool__(self):
-        return any(event_list for event_list in self._code2event_list.values())
-del add_event_list_properties
+        return any(meeting_list for meeting_list in self._code2meeting_list.values())
+del add_meeting_list_properties
 
 
 _STAFF = "Staff"

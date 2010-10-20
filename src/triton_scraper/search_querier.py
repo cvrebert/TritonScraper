@@ -18,6 +18,13 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
 
+"""
+This module prepares TritonLink Schedule of Classes search queries.
+
+:copyright: (c) 2010 by Christopher Rebert.
+:license: MIT, see :file:`LICENSE.txt` for more details.
+"""
+
 from urlparse import urljoin
 
 from triton_scraper import config
@@ -80,8 +87,18 @@ def _class_search_post_url_from(absolute_url, form):
 ### The One Externally-relevant Function
 subject_forms = XPath("//form[@name='%s']" % config.SUBJECTWISE_FORM_NAME)
 def prepare_class_search_query(term_code, subject_code, sched_tree, sched_url):
-    """Returns the HTTP POST destination URL and form query data to run a search for all courses in the given subject during the given term.
-    Takes the URL and HTML ElementTree of the Schedule of Classes search page."""
+    """
+    :param term_code: code of the UCSD academic term to restrict the search to
+    :type term_code: string
+    :param subject_code: code of the academic subject to restrict the search to
+    :type subject_code: string
+    :param sched_tree: HTML element tree of the UCSD Schedule of Classes search webpage
+    :type sched_tree: :class:`lxml.etree.ElementTree`
+    :param sched_url: URL of the UCSD Schedule of Classes search webpage
+    :type sched_url: string
+    :returns: HTTP POST destination URL and form query data for running a search for all courses in the given subject during the given term
+    :rtype: tuple of a string and a dict of strings to (possibly lists of) strings
+    """
     form = subject_forms(sched_tree)[0]
     query = _broad_class_search_form_query(form, term_code, subject_code)
     form_post_url = _class_search_post_url_from(sched_url, form)        

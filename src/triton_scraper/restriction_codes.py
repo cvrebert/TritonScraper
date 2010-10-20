@@ -18,6 +18,13 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
 
+"""
+This module fetches and holds data on TritonLink course restriction codes.
+
+:copyright: (c) 2010 by Christopher Rebert.
+:license: MIT, see :file:`LICENSE.txt` for more details.
+"""
+
 from triton_scraper.util import *
 from triton_scraper.config import RESTRICTION_CODE_URL as _RESTRICTION_CODE_URL
 from triton_scraper.fetchparse import make_tree4url

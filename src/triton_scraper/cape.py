@@ -25,7 +25,7 @@ This module browses, scrapes, and parses `CAPE's website <http://www.cape.ucsd.e
 :license: MIT, see :file:`LICENSE.txt` for more details.
 """
 
-from contextlib import _closing
+from contextlib import closing as _closing
 from time import _sleep
 from decimal import Decimal
 from collections import _namedtuple#, OrderedDict

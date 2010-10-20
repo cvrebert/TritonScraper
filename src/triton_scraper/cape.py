@@ -26,12 +26,11 @@ This module browses, scrapes, and parses `CAPE's website <http://www.cape.ucsd.e
 """
 
 from contextlib import closing as _closing
-from time import _sleep
+from time import sleep as _sleep
 from decimal import Decimal
-from collections import _namedtuple#, OrderedDict
-from urlparse import _urljoin
-from urllib import _urlencode
-from urllib2 import urlopen, Request
+from collections import namedtuple as _namedtuple#, OrderedDict
+from urlparse import urljoin as _urljoin
+from urllib import urlencode as _urlencode
 
 import triton_scraper.config
 from triton_scraper.util import RELATIVE_PREFIX, XPath

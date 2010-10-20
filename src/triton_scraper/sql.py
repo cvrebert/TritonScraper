@@ -48,7 +48,7 @@ def _create_statement_for(table_name, columns):
     :rtype: string
     :returns: SQLite CREATE TABLE statement
     """
-    columns_def = ", ".join("%s %s" % pair for pair in CAPE_TABLE_COLUMNS
+    columns_def = ", ".join("%s %s" % pair for pair in CAPE_TABLE_COLUMNS)
     return "CREATE TABLE %s(%s)" % (table_name, columns_def)
 
 def foreign_key(col, datatype, foreign_table, foreign_column):
@@ -58,7 +58,7 @@ def foreign_key(col, datatype, foreign_table, foreign_column):
 CAPE_TABLE_NAME = "Cape"
 #: List of (column name, SQLite type name) tuples for main CAPE SQLite table
 CAPE_TABLE_COLUMNS = [
-    (SECTION_ID_COL, _INT+" "+_PRIMARY_KEY)#FIXME: add this
+    (SECTION_ID_COL, _INT+" "+_PRIMARY_KEY),#FIXME: add this
     ("department_code", _STR),
     ("term_code", _STR),
     ("subject_code", _STR),#FIXME: split course_code
@@ -69,17 +69,17 @@ CAPE_TABLE_COLUMNS = [
     (level_name, _INT) for level_name in _cape.ClassLevels._fields] + [
     (reason_name, _INT) for reason_name in _cape.ReasonsForTaking._fields] + [
     (grade, _INT) for grade in _cape.ExpectedGrades._fields] + [
-    (hours, _INT) for hours in StudyHours._fields] + [
+    (hours, _INT) for hours in _cape.StudyHours._fields] + [
     (attendance_category, _INT) for attendance_category in _cape.Attendance._fields] + [
     ("%s_%s" % (recommendee, recommendation), _INT) for recommendation in ("no", "yes") for recommendee in ("course", "instructor")]
-]
+
 #: SQLite CREATE TABLE statement for main CAPE SQLite table
 CREATE_CAPE_TABLE_STMT = _create_statement_for(CAPE_TABLE_NAME, CAPE_TABLE_COLUMNS)
 
 #: Name of subsidiary level-of-agreement question answers SQLite table
 AGREEMENT_TABLE_NAME = "Agreement"
 #: List of (column name, SQLite type name) tuples for the level-of-agreement question answers SQLite table
-AGREEMENT_TABLE_COLUMNS = [foreign_key(SECTION_ID_COL, _INT, CAPE_TABLE_NAME, SECTION_ID_COL), ("question", _STR)] + [(level_name, _INT) for level_name in AgreementLevels._fields]
+AGREEMENT_TABLE_COLUMNS = [foreign_key(SECTION_ID_COL, _INT, CAPE_TABLE_NAME, SECTION_ID_COL), ("question", _STR)] + [(level_name, _INT) for level_name in _cape.AgreementLevels._fields]
 #: SQLite CREATE TABLE statement for level-of-agreement question answers SQLite table
 CREATE_AGREEMENT_TABLE_STMT = _create_statement_for(AGREEMENT_TABLE_NAME, AGREEMENT_TABLE_COLUMNS)
 

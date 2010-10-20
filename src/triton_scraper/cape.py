@@ -18,6 +18,13 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
 
+"""
+This module browses, scrapes, and parses `CAPE's website <http://www.cape.ucsd.edu>`_ into useful objects.
+
+:copyright: (c) 2010 by Christopher Rebert.
+:license: MIT, see :file:`LICENSE.txt` for more details.
+"""
+
 from contextlib import _closing
 from time import _sleep
 from decimal import Decimal
@@ -26,34 +33,17 @@ from urlparse import _urljoin
 from urllib import _urlencode
 from urllib2 import urlopen, Request
 
+import triton_scraper.config
+from triton_scraper.util import RELATIVE_PREFIX, XPath
+from triton_scraper.fetchparse import make_tree4url
 from lxml import etree
-XPath = etree.XPath
-
-RELATIVE_PREFIX = "descendant-or-self::node()"
 
 CAPE_SEARCH_URL = "http://www.cape.ucsd.edu/stats.html"
 
-USER_AGENT = "Mozilla/5.0 (Windows NT 5.1; U; en-US; rv:1.9.2) Gecko/20100115 Firefox/3.6"
-SOCKET_TIMEOUT = 30
-RETRY_DELAY = 30
+_tree4url = make_tree4url()
 def url2tree(url):
-    req = Request(url)
-    req.add_header('User-agent', USER_AGENT)
-    while True:
-        try:
-            with _closing(urlopen(req, None, SOCKET_TIMEOUT)) as f:
-                parser = etree.HTMLParser()
-                tree = etree.parse(f, parser)
-                # real_url = f.geturl()
-        except IOError as ioe:
-            try:
-                description = "%s: %s" % (type(ioe.reason), list(ioe.reason))
-            except (AttributeError, TypeError):
-                description = str(ioe)
-            print "Encountered IOError:", description, "; Waiting & retrying..."
-            _sleep(RETRY_DELAY)
-        else:
-            return tree#, real_url
+    tree, _url = _tree4url(url)
+    return tree
 
 #FIXME: enable
 # self_cape = XPath(RELATIVE_PREFIX+"/div[@align='right' and text() = 'SelfCAPE']")
@@ -119,7 +109,6 @@ def parse_detailed_page(url):
     if instructor:
         instructor = instructor[0].strip() #FIXME: parse into Instructor. multi-instructor courses have semicolons btw names. last, first
     else:
-        #FIXME: use UnknownInstructor or similar here
         instructor = None # Some courses have no listed instructor
     
     nums = [string2num(s) for s in (u.strip() for u in numbers(tree)) if s]
@@ -258,7 +247,7 @@ def parse_expected_grades(l):
     return expected_grades
 
 #FIXME: remember section ID#
-_CourseAndProfessorEvaluation = _namedtuple('_CourseAndProfessorEvaluation', "department_code, term_code, course_code, instructor_name, enrollment, respondents, class_levels, reasons_for_taking, expected_grades, agreement_questions, hours_studying_per_week, attendance, recommend_course, recommend_instructor")
+_CourseAndProfessorEvaluation = _namedtuple('_CourseAndProfessorEvaluation', "section_id department_code term_code subject_code course_number instructor enrollment respondents class_levels reasons_for_taking expected_grades hours_studying_per_week attendance recommend_course recommend_instructor agreement_questions")
 class CourseAndProfessorEvaluation(_CourseAndProfessorEvaluation):
     FORMAT = "{0.term_code}: {0.course_code} with {0.instructor_name}; ({0.respondents} responses/{0.enrollment} enrolled)"
     def __repr__(self):

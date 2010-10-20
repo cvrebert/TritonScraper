@@ -98,12 +98,12 @@ def parse_detailed_page(url):
     tree = url2tree(url)
     if page_is_dud(tree):
         return None
-    department_code = departments(tree)[0]
+    department_code = departments(tree)[0].strip()
     
     enrollment = int(enrollments(tree)[0].split(": ")[1])
     respondents = int(questionaires_returneds(tree)[0].split(": ")[1])
     term_code = term_codes(tree)[0]
-    course_code = course_codes(tree)[0]
+    subject_code, course_number = course_codes(tree)[0].split(" ")
     instructor = instructor_names(tree)
     if instructor:
         instructor = instructor[0].strip() #FIXME: parse into Instructor. multi-instructor courses have semicolons btw names. last, first
@@ -129,7 +129,8 @@ def parse_detailed_page(url):
         recommend_prof = parse_recommendations(nums)
     else:
         recommend_prof = RecommendLevel(0, 0)
-    cape = CourseAndProfessorEvaluation(department_code=department_code, term_code=term_code, course_code=course_code, instructor_name=instructor, enrollment=enrollment, respondents=respondents, class_levels=class_levels, reasons_for_taking=reasons_for_taking, expected_grades=expected_grades, agreement_questions=question2agreement, hours_studying_per_week=hours_studying_per_week, attendance=attendance, recommend_course=recommend_course, recommend_instructor=recommend_prof)
+    cape = CourseAndProfessorEvaluation(-1,#FIXME
+        department_code, term_code, subject_code, course_number, instructor, enrollment, respondents, class_levels, reasons_for_taking, expected_grades, hours_studying_per_week, attendance, recommend_course, recommend_prof, question2agreement)
     if nums:
         print cape
         print nums
@@ -247,11 +248,15 @@ def parse_expected_grades(l):
 
 #FIXME: remember section ID#
 _CourseAndProfessorEvaluation = _namedtuple('_CourseAndProfessorEvaluation', "section_id department_code term_code subject_code course_number instructor enrollment respondents class_levels reasons_for_taking expected_grades hours_studying_per_week attendance recommend_course recommend_instructor agreement_questions")
-class CourseAndProfessorEvaluation(_CourseAndProfessorEvaluation):
-    FORMAT = "{0.term_code}: {0.course_code} with {0.instructor_name}; ({0.respondents} responses/{0.enrollment} enrolled)"
+class CourseAndProfessorEvaluation(_CourseAndProfessorEvaluation):    
+    FORMAT = "{0.term_code}: {0.course_code} with {0.instructor}; ({0.respondents} responses/{0.enrollment} enrolled)"
     def __repr__(self):
         parts = [self.FORMAT.format(self), self.class_levels, self.reasons_for_taking, self.expected_grades]
         parts = [str(part) for part in parts]
         parts.extend("%s\n\t\t%s" % (q, a) for q, a in self.agreement_questions)
         parts.extend(str(part) for part in (self.hours_studying_per_week, self.attendance, self.recommend_course, self.recommend_instructor))
         return "\n\t".join(parts)
+    
+    @property
+    def course_code(self):
+        return "%s %s" % (self.subject_code, self.course_number)
